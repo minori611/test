@@ -5,7 +5,7 @@
 //  Created by Minori on 2018/06/23.
 //  Copyright © 2018年 Minori. All rights reserved.
 //
-
+//test
 import UIKit
 import Accounts
 
