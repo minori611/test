@@ -19,6 +19,9 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
     var contrast: Float = 1.0
     var saturation: Float = 1.0
     let userDefaults = UserDefaults.standard
+    var filterBrightness: Float?
+    var filterContrast: Float?
+    var filterSaturation: Float?
     private var brightnessButton: UIButton!
     private var contrastButton: UIButton!
     private var saturationButton: UIButton!
@@ -26,6 +29,10 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
     private var contrastCancelButton: UIButton!
     private var brightnessCancelButton: UIButton!
     private var saturationCancelButton: UIButton!
+    private var saveFilterButton: UIButton!
+    private var saveButton: UIButton!
+    private var shareButton: UIButton!
+    private var filterButton: UIButton!
     let brightnessSlider = UISlider(frame: CGRect(x:0, y:0, width:200, height:30))
     let contrastSlider = UISlider(frame: CGRect(x:0, y:0, width:200, height:30))
     let saturationSlider = UISlider(frame: CGRect(x:0, y:0, width:200, height:30))
@@ -43,9 +50,17 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
         addBrightnessCancelButton()
         addContrastCancelButton()
         addSaturationCancelButton()
+        addSaveFilterButton()
+        addFilterButton()
+        addSaveButton()
+        addShareButton()
         self.view.addSubview(brightnessButton)
         self.view.addSubview(contrastButton)
         self.view.addSubview(saturationButton)
+        self.view.addSubview(saveFilterButton)
+        self.view.addSubview(filterButton)
+        self.view.addSubview(saveButton)
+        self.view.addSubview(shareButton)
         // Do any additional setup after loading the view.
     }
     
@@ -187,7 +202,7 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
         contrastSlider.addTarget(self, action: #selector(self.changeContrast(sender:)), for: .valueChanged)
     }
     
-    //こんとらすとのすらいだーをつくる
+    //saturationのすらいだーをつくる
     func addSaturationSlider() {
         saturationSlider.layer.position = CGPoint(x:self.view.frame.midX, y:600)
         saturationSlider.layer.cornerRadius = 20.0
@@ -196,8 +211,63 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
         saturationSlider.tintColor = UIColor.gray
         saturationSlider.minimumValue = 0
         saturationSlider.maximumValue = 2
-        saturationSlider.setValue(contrast, animated: true)
+        saturationSlider.setValue(saturation, animated: true)
         saturationSlider.addTarget(self, action: #selector(self.changeSaturation(sender:)), for: .valueChanged)
+    }
+    
+    //filter保存ぼたんをつくる
+    func addSaveFilterButton() {
+        saveFilterButton = UIButton()
+        let bWidth: CGFloat = 50
+        let bHeight: CGFloat = 50
+        let posX: CGFloat = 18.5*(self.view.frame.width)/20 - bWidth/2
+        let posY: CGFloat = 14*(self.view.frame.height)/20 - bHeight/2
+        saveFilterButton.frame = CGRect(x: posX, y: posY, width: bWidth, height: bHeight)
+        saveFilterButton.setTitle("卍", for: .normal)
+        saveFilterButton.setTitleColor(UIColor.black, for: .normal)
+        saveFilterButton.titleLabel?.font = UIFont.systemFont(ofSize: 25)
+        saveFilterButton.addTarget(self, action: #selector(self.saveFilter(sender:)), for: .touchUpInside)
+    }
+    
+    //保存ぼたん
+    func addSaveButton() {
+        saveButton = UIButton()
+        let bWidth: CGFloat = 50
+        let bHeight: CGFloat = 50
+        let posX: CGFloat = 2*(self.view.frame.width)/20 - bWidth/2
+        let posY: CGFloat = 14*(self.view.frame.height)/20 - bHeight/2
+        saveButton.frame = CGRect(x: posX, y: posY, width: bWidth, height: bHeight)
+        saveButton.setTitle("Save", for: .normal)
+        saveButton.setTitleColor(UIColor.black, for: .normal)
+        saveButton.titleLabel?.font = UIFont.systemFont(ofSize: 15)
+        saveButton.addTarget(self, action: #selector(self.savePhoto(sender:)), for: .touchUpInside)
+    }
+    
+    //
+    func addShareButton() {
+        shareButton = UIButton()
+        let bWidth: CGFloat = 50
+        let bHeight: CGFloat = 50
+        let posX: CGFloat = 5*(self.view.frame.width)/20 - bWidth/2
+        let posY: CGFloat = 14*(self.view.frame.height)/20 - bHeight/2
+        shareButton.frame = CGRect(x: posX, y: posY, width: bWidth, height: bHeight)
+        shareButton.setTitle("Share", for: .normal)
+        shareButton.setTitleColor(UIColor.black, for: .normal)
+        shareButton.titleLabel?.font = UIFont.systemFont(ofSize: 15)
+        shareButton.addTarget(self, action: #selector(self.sharePhoto(sender:)), for: .touchUpInside)
+    }
+    
+    func addFilterButton() {
+        filterButton = UIButton()
+        let bWidth: CGFloat = 75
+        let bHeight: CGFloat = 50
+        let posX: CGFloat = 15*(self.view.frame.width)/20 - bWidth/2
+        let posY: CGFloat = 14*(self.view.frame.height)/20 - bHeight/2
+        filterButton.frame = CGRect(x: posX, y: posY, width: bWidth, height: bHeight)
+        filterButton.setTitle("MyFilter", for: .normal)
+        filterButton.setTitleColor(UIColor.black, for: .normal)
+        filterButton.titleLabel?.font = UIFont.systemFont(ofSize: 15)
+        filterButton.addTarget(self, action: #selector(self.filter(sender:)), for: .touchUpInside)
     }
     
     //ぶらいとねすのすらいだーをけす
@@ -267,8 +337,7 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
     //ぶらいとねすの値を変える
     @objc func changeBrightness(sender: UISlider) {
         brightness = sender.value
-        userDefaults.set(brightness, forKey: "brightness")
-        userDefaults.synchronize()
+        
         changeFilter()
     }
     
@@ -323,13 +392,58 @@ class editViewController: UIViewController, UIImagePickerControllerDelegate, UIN
         //contrast
         filter.setValue(contrast, forKey: "inputContrast")
         
+        //saturation
         filter.setValue(saturation, forKey: kCIInputSaturationKey)
+        
         
         let ctx = CIContext(options: nil)
         let cgImage = ctx.createCGImage(filter.outputImage!, from: filter.outputImage!.extent)
         imageView.image = UIImage(cgImage: cgImage!)
     }
     
+    //filterを保存する
+    @objc func saveFilter(sender: UIButton) {
+        userDefaults.set(brightness, forKey: "brightness")
+        userDefaults.set(contrast, forKey: "contrast")
+        userDefaults.set(saturation, forKey: "saturation")
+        let alert: UIAlertController = UIAlertController(title: "保存", message: "保存しました", preferredStyle: .alert)
+        alert.addAction(
+            UIAlertAction(
+                title: "OK",
+                style: .default,
+                handler: { action in
+                    //ボタンが押された時の動作
+
+                    print("OKボタンが押されました!")
+            }
+            )
+        )
+        present(alert, animated: true, completion: nil)
+        print("DebugPrint\(userDefaults.object(forKey: "brightness") as! Float)")
+    }
+    
+    @objc func filter(sender: UIButton) {
+        brightness = userDefaults.object(forKey: "brightness") as! Float
+        contrast = userDefaults.object(forKey: "contrast") as! Float
+        saturation = userDefaults.object(forKey: "saturation") as! Float
+        print(brightness)
+        changeFilter()
+    }
+    
+    //画像を保存
+    @objc func savePhoto(sender: UIButton) {
+        UIImageWriteToSavedPhotosAlbum(imageView.image!, nil, nil, nil)
+    }
+    
+    //画像をSNSでシェア
+    @objc func sharePhoto(sender: UIButton) {
+        let shareImage = imageView.image!
+        let activityItems: [Any] = [shareImage]
+        let activityViewController = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let excludeAcitivityTypes = [UIActivityType.postToWeibo, .saveToCameraRoll, .print]
+        activityViewController.excludedActivityTypes = excludeAcitivityTypes
+        present(activityViewController, animated: true, completion: nil)
+    }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
